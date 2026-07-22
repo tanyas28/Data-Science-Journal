@@ -14,6 +14,8 @@ it has three vectors: **Key, Value and Query**
 | Query (Q) | What information am I looking for? |
 | Key (K) | What information does this token contain? |
 | Value (V) | The actual information passed forward |
+
+
 it decides how much attention to give to particular token by performing a **dot product** between query vector and its key vector.
 $$
 Attention(Q,K,V)=softmax\left(\frac{QK^T}{\sqrt{d_k}}\right)V
