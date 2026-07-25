@@ -232,9 +232,259 @@ These contextual embeddings are then passed to the next layers of the Transforme
 
 
 ---
+## Topic 2: Positional Encoding :
+
+We know that position of words (order in which they appear) in a sentence is really important, especially if we are trying to build a model for conversation or even generation of the next token.
+
+Suppose a sentence:
+
+> "dog bites man"
+
+and another:
+
+> "man bites dog"
+
+The meaning is completely different, yet the embeddings of these words are the same, and the attention mechanism does not inherently know the position/order of the words.
+
+The attention mechanism only calculates relationships between words based on their Query and Key vectors. It knows **which words are related**, but without additional information, it does not know:
+
+- which word came first,
+- which word came after another word,
+- the distance between two words.
+
+Now RNNs have built-in capability to deal with the order of words because they process words sequentially. The hidden state carries information from previous words.
+
+However, Transformers do not use RNNs. They use self-attention and process all words in parallel. Therefore, we need some additional mechanism to provide information about the position of each word.
+
+---
+
+### The Solution: Positional Encoding
+
+What is positional encoding?
+
+It is a vector that we add to the embedding vector, so obviously it has the same dimension as that of the embedding vector.
+
+Suppose:
+
+- Sentence length = `n`
+- Embedding dimension = `d`
+
+Then:
+
+Embedding matrix:
+
+$$
+X \in \mathbb{R}^{n \times d}
+$$
+
+Positional Encoding matrix:
+
+$$
+PE \in \mathbb{R}^{n \times d}
+$$
+
+The final input to the Transformer is:
+
+$$
+X + PE
+$$
+
+where each word embedding gets combined with its corresponding positional information.
+
+---
+
+### How does adding numbers tell the Transformer about position?
+
+Now what happens essentially is some number (let's say for now) is added to each token element, but how does Transformer know that it actually represents position?
+
+The answer is:
+
+**It does not know initially. It learns this during training.**
+
+The positional values are just additional signals added to the word embeddings.
+
+Because the Transformer is trained on thousands and thousands of examples, it learns patterns between:
+
+- word meaning information from embeddings
+- positional information from positional encoding
+
+For example:
+
+The word "cat" will have the same embedding value wherever it appears.
+
+The only difference will be the positional vector added to it.
+
+Example:
+Sentence 1:
+The cat sleeps
+
+cat embedding + position 2 vector
+
+Sentence 2:
+cat is cute
+
+cat embedding + position 0 vector
 
 
-## Topic 2: Scaling Laws – Building Compute-Optimal Models
+
+The word embedding remains the same, but the final input representation changes because of position.
+
+Gradually, through backpropagation, the Transformer learns the association that this difference corresponds to the position of the word.
+
+Every time a sentence appears with "cat" at a certain position, the model learns which patterns help it predict the next token correctly.
+
+When the prediction is wrong, the weights are adjusted, and over millions of examples, the model learns to use positional information.
+
+---
+
+# Mathematical Representation
+
+The original Transformer paper uses **sinusoidal positional encoding**.
+
+The formula is:
+
+$$
+PE(pos,2i)=sin\left(\frac{pos}{10000^{2i/d}}\right)
+$$
+
+$$
+PE(pos,2i+1)=cos\left(\frac{pos}{10000^{2i/d}}\right)
+$$
+
+---
+
+## Understanding the Variables
+
+### `pos`
+
+`pos` represents the position of the word.
+
+It is also the row number of the positional encoding matrix.
+
+Example:
+Sentence:
+
+I love AI
+
+Position:
+
+- I → pos = 0
+- love → pos = 1
+- AI → pos = 2
+
+
+Each row of the positional encoding matrix corresponds to one position in the sentence.
+
+---
+
+### `i`
+
+`i` represents the column index used to generate positional encoding.
+
+It helps decide which dimension of the positional encoding matrix we are calculating.
+
+The formula uses:
+
+- `2i` → even columns
+- `2i + 1` → odd columns
+
+because:
+
+- sine values are used for even dimensions
+- cosine values are used for odd dimensions
+
+---
+
+### `d`
+
+`d` represents the dimension of the embedding.
+
+The positional encoding matrix has the same dimension as the embedding matrix because we need to add them together.
+
+For example:
+
+If embedding dimension:
+
+d = 512
+then positional encoding dimension: 512
+
+
+---
+
+### `10000`
+
+The value `10000` controls how quickly the sine and cosine functions change.
+
+The reason we divide by:
+
+$$
+10000^{2i/d}
+$$
+
+is because we want different dimensions to have different frequencies.
+
+Some dimensions should change quickly with position, while other dimensions should change slowly.
+
+This creates a unique positional pattern for every position.
+
+Think of each dimension as a different clock:
+
+- some clocks tick quickly,
+- some clocks tick slowly.
+
+Together, they create a unique fingerprint for every position.
+
+---
+
+# Sine and Cosine Usage
+
+Both sine and cosine are used.
+
+- Sine fills even columns.
+- Cosine fills odd columns.
+
+Example:
+
+If embedding dimension = 6:
+
+| Column | Function |
+|---|---|
+|0|sin|
+|1|cos|
+|2|sin|
+|3|cos|
+|4|sin|
+|5|cos|
+
+The choice of alternating sine and cosine gives the model two different periodic signals to represent position.
+
+---
+
+# Final Step
+
+We add the positional encoding matrix to the embedding matrix:
+
+$$
+Input = Embedding + Positional\ Encoding
+$$
+
+After this addition, the Transformer receives embeddings that contain:
+
+- information about the word itself
+- information about where the word appears in the sentence
+
+After this step, the remaining attention mechanism follows:
+
+1. Calculate Q, K, V
+2. Calculate attention scores
+3. Apply scaling
+4. Apply softmax
+5. Multiply attention weights with V
+6. Generate contextualized word representations
+
+---
+
+## Topic 3: Scaling Laws – Building Compute-Optimal Models
 
 Scaling laws study the relationship between:
 
@@ -312,7 +562,7 @@ This saves a tremendous amount of computation.
 
 ---
 
-## Topic 3: Post Training
+## Topic 4: Post Training
 
 After deciding:
 
