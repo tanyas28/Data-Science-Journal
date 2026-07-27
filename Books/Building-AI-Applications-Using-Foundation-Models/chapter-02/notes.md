@@ -1,5 +1,4 @@
 # Chapter 2: Understanding Foundation Models
-```md
 ## Topic 1: Sampling
 
 **Sampling** is how a model chooses an output from all possible options. Choosing the right sampling strategy can significantly improve a model's performance with relatively little effort.
