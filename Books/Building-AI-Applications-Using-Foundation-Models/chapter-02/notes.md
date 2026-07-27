@@ -163,8 +163,6 @@ Example:
 
 - Add a **classification head** after the output embeddings.
 - The model is then forced to output one of the predefined classes rather than arbitrary text.
-```
-
 
 ## Topic 2: Transformer Architecture
 This topic introduces **seq2seq(sequence to sequence architecture)**. Transformer is popular on the heels of this architecture.
