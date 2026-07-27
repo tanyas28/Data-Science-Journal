@@ -1,6 +1,171 @@
 # Chapter 2: Understanding Foundation Models
-## Topic 1: Sampling:
-**Sampling**  is how model chooses an output from all possible options . Choosing the right sampling startegy can significantly boost a model's performance with relatively little effort.
+```md
+## Topic 1: Sampling
+
+**Sampling** is how a model chooses an output from all possible options. Choosing the right sampling strategy can significantly improve a model's performance with relatively little effort.
+
+### Sampling Fundamentals
+
+1. The model generates the next token by computing a probability for every token in the vocabulary.
+2. The simplest approach is **Greedy Sampling**, where the model always picks the token with the highest probability.
+3. **Drawback:** Greedy sampling often produces repetitive, predictable, and less creative responses.
+4. Instead of always selecting the highest-probability token, we can **sample from the entire probability distribution**.
+
+To obtain this probability distribution:
+
+- The model first produces **logits** (raw, unnormalized scores) for every token in the vocabulary.
+- The logits form a vector of size equal to the vocabulary size.
+- These logits are converted into probabilities using the **Softmax** function.
+
+Softmax formula:
+
+\[
+P(x_i)=\frac{e^{z_i}}{\sum_{j=1}^{V} e^{z_j}}
+\]
+
+where:
+
+- \(z_i\) = logit of token *i*
+- \(V\) = vocabulary size
+
+**Drawback:** Softmax requires computation over the entire vocabulary (typically two passes), making it computationally expensive for very large vocabularies.
+
+---
+
+### Sampling Variables
+
+The most common sampling variables are:
+
+- Temperature
+- Top-K
+- Top-P (Nucleus Sampling)
+
+Two important things to learn:
+
+1. How to sample tokens.
+2. How to sample outputs in a way that produces structured responses.
+
+---
+
+### Temperature
+
+1. Higher **temperature** → more creative but less coherent responses.
+2. Lower **temperature** → more deterministic and focused responses.
+3. Temperature is applied **before Softmax** by dividing the logits:
+
+\[
+z'_i=\frac{z_i}{T}
+\]
+
+where \(T\) is the temperature.
+
+The modified logits are then passed through Softmax.
+
+- **High temperature** flattens the probability distribution, increasing the chance of selecting rarer tokens.
+- **Low temperature** sharpens the distribution, making high-probability tokens even more likely.
+
+**Note:** We do **not** set temperature to exactly **0** because dividing by zero is undefined. In practice, a temperature very close to zero behaves almost like greedy sampling.
+
+Example:
+
+- Temperature = **0.2** → factual, deterministic answers.
+- Temperature = **1.2** → more diverse and creative answers.
+
+**Log Probability (LogProb):**
+
+Since vocabulary is huge, probabilities become very small. Instead of working directly with probabilities, we often use **log probabilities (logprobs)** because they are numerically more stable and easier to combine across tokens.
+
+---
+
+### Top-K Sampling
+
+1. Top-K reduces the amount of computation.
+2. Instead of considering the entire vocabulary, we:
+   - Select the **K tokens with the highest logits**.
+   - Apply Softmax only over these K tokens.
+   - Sample from this reduced set.
+3. Typical values range from **50–500**.
+
+Example:
+
+If **K = 50**, only the 50 most likely tokens are considered.
+
+---
+
+### Top-P (Nucleus Sampling)
+
+1. Top-K is sometimes too rigid. Some prompts may only need a few candidate tokens, while others may require many.
+2. **Top-P** dynamically chooses the candidate set based on cumulative probability, making it more context-aware.
+
+How it works:
+
+- Sort tokens by probability (highest to lowest).
+- Compute the cumulative probability.
+- Keep only the smallest set of tokens whose cumulative probability is at least **P**.
+
+Example:
+
+If **Top-P = 0.9**, keep adding tokens until their cumulative probability reaches **90%**, and discard the remaining low-probability tokens.
+
+---
+
+### Test-Time Compute
+
+Instead of generating only one response, we can generate multiple responses and select the best one.
+
+1. Generate multiple candidate responses.
+2. Rather than generating them independently, **Beam Search** keeps a fixed number of the most promising partial sequences at every decoding step.
+3. To improve effectiveness, we want the generated candidates to be diverse.
+4. The best response can be selected by:
+   - Asking the user.
+   - Using a **Reward Model**.
+   - Choosing the response with the highest probability.
+     - Compute the product of token probabilities.
+     - More commonly, sum the **log probabilities**.
+     - Often use the **average log probability** to avoid bias toward shorter responses.
+5. To reduce latency, multiple responses can be generated **in parallel**, and the first completed ones can be shown.
+
+---
+
+### Structured Outputs
+
+Goal: Generate outputs in a predefined structure (e.g., JSON, XML, SQL, etc.).
+
+Frameworks supporting structured outputs include:
+
+- Guidance
+- Outlines
+- Instructor
+- llama.cpp
+
+Approaches:
+
+#### 1. Prompting
+
+Use prompt engineering to explicitly instruct the model to follow a required format.
+
+#### 2. Post-processing
+
+If the model repeatedly makes similar formatting mistakes, manually write scripts to detect and fix those errors after generation.
+
+#### 3. Constrained Sampling
+
+During generation, the model is allowed to sample **only from tokens that satisfy predefined constraints or grammar rules**.
+
+**Drawback:** Rarely used in practice because defining complete grammars for real-world tasks is difficult.
+
+#### 4. Fine-tuning
+
+Similar to transfer learning.
+
+Instead of relying only on prompting, we fine-tune the model (or add a task-specific neural network head) for a particular task.
+
+Example:
+
+- Add a **classification head** after the output embeddings.
+- The model is then forced to output one of the predefined classes rather than arbitrary text.
+```
+
 
 ## Topic 2: Transformer Architecture
 This topic introduces **seq2seq(sequence to sequence architecture)**. Transformer is popular on the heels of this architecture.
