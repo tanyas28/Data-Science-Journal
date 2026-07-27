@@ -17,15 +17,18 @@ To obtain this probability distribution:
 - These logits are converted into probabilities using the **Softmax** function.
 
 Softmax formula:
-
+$$
 \[
 P(x_i)=\frac{e^{z_i}}{\sum_{j=1}^{V} e^{z_j}}
 \]
+$$
 
 where:
 
+$$
 - \(z_i\) = logit of token *i*
 - \(V\) = vocabulary size
+$$
 
 **Drawback:** Softmax requires computation over the entire vocabulary (typically two passes), making it computationally expensive for very large vocabularies.
 
@@ -52,9 +55,11 @@ Two important things to learn:
 2. Lower **temperature** → more deterministic and focused responses.
 3. Temperature is applied **before Softmax** by dividing the logits:
 
+$$
 \[
 z'_i=\frac{z_i}{T}
 \]
+$$
 
 where \(T\) is the temperature.
 
@@ -163,8 +168,6 @@ Example:
 
 - Add a **classification head** after the output embeddings.
 - The model is then forced to output one of the predefined classes rather than arbitrary text.
-```
-
 
 ## Topic 2: Transformer Architecture
 This topic introduces **seq2seq(sequence to sequence architecture)**. Transformer is popular on the heels of this architecture.
