@@ -20,7 +20,7 @@ Four common metrics:
 
 ### 1. Cross Entropy
 
-Let's start with **Entropy**.
+Let’s start with **Entropy**.
 
 Entropy is the average amount of information carried by a token. Higher information content means higher entropy and therefore more bits are required to represent the token.
 
@@ -28,25 +28,25 @@ Entropy is the average amount of information carried by a token. Higher informat
 
 Definitions:
 
-- \(P\): True distribution of the training data
-- \(Q\): Distribution learned by the model
+- $P$: True distribution of the training data
+- $Q$: Distribution learned by the model
 
-The divergence of \(Q\) from \(P\) can be measured using **Kullback-Leibler (KL) Divergence**:
+The divergence of $Q$ from $P$ can be measured using **Kullback-Leibler (KL) Divergence**:
 
-\[
+$$
 D_{KL}(P \parallel Q)
-\]
+$$
 
 Cross entropy is related to entropy and KL divergence as:
 
-\[
+$$
 H(P,Q) = H(P) + D_{KL}(P \parallel Q)
-\]
+$$
 
 where:
 
-- \(H(P)\) = Entropy of the true data distribution
-- \(H(P,Q)\) = Model's cross entropy with respect to the training data
+- $H(P)$ = Entropy of the true data distribution
+- $H(P,Q)$ = Model’s cross entropy with respect to the training data
 
 A lower cross-entropy score generally indicates a better language model.
 
@@ -56,9 +56,9 @@ A lower cross-entropy score generally indicates a better language model.
 
 Perplexity measures the uncertainty of a model when predicting the next token.
 
-\[
+$$
 PPL(P,Q) = e^{H(P,Q)}
-\]
+$$
 
 Higher uncertainty means there are more possible choices the model is considering.
 
@@ -100,17 +100,17 @@ A common metric is **Pass@K**.
 
 Suppose:
 
-- The model generates \(K\) responses for each problem.
-- There are \(n\) total problems.
-- The model successfully solves \(s\) of them.
+- The model generates $K$ responses for each problem.
+- There are $n$ total problems.
+- The model successfully solves $s$ of them.
 
 Then:
 
-\[
+$$
 Pass@K = \frac{s}{n}
-\]
+$$
 
-Pass@K tells us how often at least one of the \(K\) generated responses solves the problem correctly.
+Pass@K tells us how often at least one of the $K$ generated responses solves the problem correctly.
 
 ---
 
@@ -118,9 +118,9 @@ Pass@K tells us how often at least one of the \(K\) generated responses solves t
 
 Reference data is usually prepared in the form:
 
-\[
+$$
 (Input,\ Reference\ Response)
-\]
+$$
 
 Each input may have one or more valid reference responses.
 
@@ -152,7 +152,7 @@ Measures how many transformations (insertions, deletions, substitutions) are req
 
 **N-gram Similarity**
 
-Measures overlap between sequences of \(n\) consecutive tokens.
+Measures overlap between sequences of $n$ consecutive tokens.
 
 Example:
 
@@ -180,18 +180,17 @@ The idea is:
 
 Cosine similarity formula:
 
-\[
+$$
 \text{Cosine Similarity}(A,B)
 =
 \frac{A \cdot B}
-{\|A\|\|B\|}
-\]
+{|A||B|}
+$$
 
 where:
 
-- \(A \cdot B\) = Dot product of the vectors
-- \(\|A\|\) = Magnitude of vector \(A\)
-- \(\|B\|\) = Magnitude of vector \(B\)
+- $A \cdot B$ = Dot product of the vectors
+- $|A|$ = Magnitude of vector $A$
+- $|B|$ = Magnitude of vector $B$
 
 A value closer to **1** indicates the responses are semantically similar, even if the exact wording is different.
-
