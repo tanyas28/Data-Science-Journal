@@ -20,9 +20,9 @@ Four common metrics:
 
 ### 1. Cross Entropy
 
-Let’s start with **Entropy**.
+Let's start with **Entropy**.
 
-Entropy is the average amount of information carried by a token. Higher information content means higher entropy and therefore more bits are required to represent the token.
+Entropy is the average amount of information carried by a token. Higher information content means higher entropy, and therefore more bits are required to represent the token.
 
 **Cross Entropy** measures how difficult it is for a model to predict the correct next token.
 
@@ -46,7 +46,7 @@ $$
 where:
 
 - $H(P)$ = Entropy of the true data distribution
-- $H(P,Q)$ = Model’s cross entropy with respect to the training data
+- $H(P,Q)$ = Model's cross entropy with respect to the training data
 
 A lower cross-entropy score generally indicates a better language model.
 
@@ -73,9 +73,7 @@ Perplexity can also help identify:
 - Whether a piece of text is likely to have come from the training distribution.
 - Whether a sample is unusually different from the training data.
 
-Example:
-
-- A mathematical formula or source code often has lower perplexity than a random sequence of words because it follows stronger patterns.
+**Example:** A mathematical formula or source code often has lower perplexity than a random sequence of words because it follows stronger patterns.
 
 ---
 
@@ -181,10 +179,7 @@ The idea is:
 Cosine similarity formula:
 
 $$
-\text{Cosine Similarity}(A,B)
-=
-\frac{A \cdot B}
-{|A||B|}
+\text{Cosine Similarity}(A,B) = \frac{A \cdot B}{|A||B|}
 $$
 
 where:
