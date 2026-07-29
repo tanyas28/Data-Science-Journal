@@ -196,7 +196,9 @@ A value closer to **1** indicates the responses are semantically similar, even i
 
 ### 1. How to use it?
 
-<List gap={2}><List.Item>Evaluate the quality of a response by itself, given the original question.</List.Item><List.Item>Compare a response to a reference response.</List.Item><List.Item>Compare two responses of a model and decide which one is better.</List.Item></List>
+- Evaluate the quality of a response by itself, given the original question.
+- Compare a response to a reference response.
+- Compare two responses of a model and decide which one is better.
 
 There are certain AI tools that can be used, such as:
 
@@ -209,7 +211,9 @@ There are certain AI tools that can be used, such as:
 
 ### 2. How to prompt an AI judge
 
-<List gap={2}><List.Item>Clearly state what it can judge.</List.Item><List.Item>Clearly define the scale that you want, such as binary (0 or 1) or a score between 1 and 5, where 1 means least relevant response and so on.</List.Item><List.Item>Give and define the criteria that you want the AI to judge on.</List.Item></List>
+- Clearly state what it can judge.
+- Clearly define the scale that you want, such as binary (0 or 1) or a score between 1 and 5, where 1 means least relevant response and so on.
+- Give and define the criteria that you want the AI to judge on.
 
 It is helpful to include examples in the prompt that explain in what scenario a response is considered better and why.
 
@@ -225,13 +229,17 @@ If the criteria are **clarity and usefulness**, Response B should receive a high
 
 ### Limitations of AI as Judge
 
-<List gap={2}><List.Item>Probabilistic nature of AI, thus inconsistency.</List.Item><List.Item>Ambiguity in setting the criteria.</List.Item><List.Item>Can cause increased costs and latency (although we can use a weaker model to act as the AI judge).</List.Item></List>
+- Probabilistic nature of AI, thus inconsistency.
+- Ambiguity in setting the criteria.
+- Can cause increased costs and latency (although we can use a weaker model to act as the AI judge).
 
 ---
 
 ### Three types of AI judges
 
-<List gap={2}><List.Item>**Reward model** (e.g., Cappy)</List.Item><List.Item>**Reference-based judge** (e.g., BLEURT, Prometheus)</List.Item><List.Item>**Preference model**</List.Item></List>
+- **Reward model** (e.g., Cappy)
+- **Reference-based judge** (e.g., BLEURT, Prometheus)
+- **Preference model**
 
 ---
 
