@@ -189,3 +189,80 @@ where:
 - $|B|$ = Magnitude of vector $B$
 
 A value closer to **1** indicates the responses are semantically similar, even if the exact wording is different.
+
+---
+
+## Topic 4: AI as Judge
+
+### 1. How to use it?
+
+<List gap={2}><List.Item>Evaluate the quality of a response by itself, given the original question.</List.Item><List.Item>Compare a response to a reference response.</List.Item><List.Item>Compare two responses of a model and decide which one is better.</List.Item></List>
+
+There are certain AI tools that can be used, such as:
+
+- Azure AI Studio
+- MLflow Metrics
+- LangChain Criteria Evaluation
+- Ragas
+
+---
+
+### 2. How to prompt an AI judge
+
+<List gap={2}><List.Item>Clearly state what it can judge.</List.Item><List.Item>Clearly define the scale that you want, such as binary (0 or 1) or a score between 1 and 5, where 1 means least relevant response and so on.</List.Item><List.Item>Give and define the criteria that you want the AI to judge on.</List.Item></List>
+
+It is helpful to include examples in the prompt that explain in what scenario a response is considered better and why.
+
+Example:
+
+- **Question:** Explain recursion.
+- **Response A:** Gives a definition only.
+- **Response B:** Gives a definition and a small code example.
+
+If the criteria are **clarity and usefulness**, Response B should receive a higher score.
+
+---
+
+### Limitations of AI as Judge
+
+<List gap={2}><List.Item>Probabilistic nature of AI, thus inconsistency.</List.Item><List.Item>Ambiguity in setting the criteria.</List.Item><List.Item>Can cause increased costs and latency (although we can use a weaker model to act as the AI judge).</List.Item></List>
+
+---
+
+### Three types of AI judges
+
+<List gap={2}><List.Item>**Reward model** (e.g., Cappy)</List.Item><List.Item>**Reference-based judge** (e.g., BLEURT, Prometheus)</List.Item><List.Item>**Preference model**</List.Item></List>
+
+---
+
+## Topic 5: Ranking Models with Comparative Evaluation
+
+We can rank models using:
+
+### 1. Pointwise Evaluation
+
+Evaluate the response of each model independently, then rank the models based on their scores.
+
+Example:
+
+- Model A → 4.5
+- Model B → 4.2
+- Model C → 3.9
+
+Ranking is obtained directly from the scores.
+
+---
+
+### 2. Comparative Evaluation
+
+Evaluate random models against each other and then compute rankings from the comparison results.
+
+This typically involves a **ranking algorithm** that computes a score for each model from comparative signals and then ranks the models based on these scores.
+
+Example:
+
+- A beats B
+- B beats C
+- A beats C
+
+The ranking algorithm converts these pairwise wins and losses into final model scores.
