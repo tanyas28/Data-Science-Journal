@@ -107,3 +107,69 @@ Common latency metrics:
 | **Time per Query** | Total time for a full response |
 
 The right metric to prioritize depends on the application — e.g., a chat UI cares more about **TTFT** (feels responsive), while a batch-processing pipeline cares more about **total time per query**.
+
+---
+## Topic 2: Model Selection Workflow
+
+At a high level, this has **four steps**:
+
+1. **Filter** out models whose hard attributes don't fit your application (e.g., license, context length, modality support).
+2. **Check public data** — the model's performance on benchmarks, leaderboards, rankings, etc.
+3. **Experiment** with candidate models on your specific use case, and pick the one that already performs best for it.
+4. **Continuously monitor** performance in production, and figure out how to collect user feedback and feed it back into improving the application.
+
+---
+
+## Designing Your Evaluation Pipeline
+
+### Step 1: Evaluate All Components in the System
+
+Ideally, you should be able to evaluate:
+- The **end-to-end output** of the system, **and**
+- Each **component's individual output**, independently.
+
+You also need to decide the **granularity** of evaluation:
+- Per **task**
+- Per **turn**
+- Per **intermediate output**
+
+> Where applicable, try to evaluate an application (e.g., a chatbot) at **both** the per-turn and per-task level.
+
+> **Example:** For a RAG chatbot, you'd evaluate the retriever's output (did it fetch the right documents?) separately from the final generated answer (per-turn), as well as whether the full multi-turn conversation achieved the user's goal (per-task).
+
+---
+
+### Step 2: Create an Evaluation Guideline
+
+Define clearly what the model **must** do and what it **must not** do.
+
+1. **Define evaluation criteria** — the specific dimensions you're measuring (e.g., factual correctness, tone, format compliance).
+2. **Create scoring rubrics with examples:**
+   - Decide the scoring scale first — binary (pass/fail) or a range (e.g., 1–5).
+   - Define rubrics explaining *why* a response scores a 1 vs. a 5.
+   - These example responses can also be given to the model (AI-as-judge) so it "learns" the rubric.
+3. **Convert evaluation metrics into business metrics** — evaluation numbers should translate into measurable business impact.
+   > **Example:** A chatbot with 80% factual consistency might reliably automate 50% of general queries — so "80% factual consistency" translates to the business metric "50% of queries automated."
+
+---
+
+### Step 3: Define Evaluation Method and Data
+
+1. **Different criteria need different evaluation methods:**
+   - **Toxicity detection** → a small, dedicated ML classifier.
+   - **Relevance** (response vs. question) → semantic similarity.
+   - **Factual correctness** → AI-as-judge.
+
+2. Evaluation methods should work **both in development and in production** — not just as a one-time dev-phase check.
+
+3. **Build an annotated evaluation set:**
+   - Can be used for both turn-based and task-based evaluation.
+   - **Slice the data** into subsets (e.g., by topic, difficulty, query type) to understand performance more granularly rather than relying on one aggregate score.
+   - For small datasets (e.g., ~100 examples), use **bootstrapping** — resample the set repeatedly and run evaluation on each sample to compare performance more robustly.
+
+4. **Evaluate the evaluation pipeline itself** — ask:
+   - Is my pipeline capturing the **right signals**?
+   - How **reliable** is the evaluation pipeline (consistent results on repeated runs)?
+   - How **correlated** are the different metrics with each other (and with actual quality)?
+   - How much **cost and latency** does the evaluation process itself incur?
+
