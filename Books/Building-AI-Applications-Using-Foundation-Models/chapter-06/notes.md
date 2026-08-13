@@ -293,10 +293,106 @@ Autoregressive LLMs **cannot truly plan** on their own. However, an LLM can stil
 
 ---
 
-#### Plan Generation
+Planners can use **function calling** (tools) while developing a plan. Function calling requires building a **tool inventory** — defining exactly what tools an agent is allowed to use.
 
-The simplest way to get a model to generate good plans is through **strong prompting**:
-1. Write better **system prompts**.
-2. Give better **descriptions of tools and their parameters**.
-3. **Simplify tools** — fewer, cleaner parameters reduce planning errors.
-4. **Fine-tune** the model specifically for better plan generation.
+Certain APIs let you control tool usage explicitly:
+- **Required** → the agent *must* use a specific tool while developing the plan.
+- **None** → the model must not use any tool at all.
+- **Auto** → the model itself decides whether/which tool to use.
+
+**Two techniques that improve plan quality:**
+- Using **more natural language** in plans (vs. rigid structured formats) — makes the planner more robust to changes in tool APIs, since it's not brittle to exact parameter schemas.
+- **Hierarchical planning** — start with a high-level plan, then progressively break it down into lower-level steps. This tends to produce more efficient, coherent plans than jumping straight to fine-grained steps.
+
+---
+
+#### Reflection and Error Correction
+
+Reflection can happen two ways:
+1. **Self-critique** — the same agent evaluates its own output.
+2. **Separate component** — a dedicated evaluator model/module does the critiquing.
+
+**ReAct Framework**
+Uses self-critique. At each stage, the agent is prompted to:
+1. **Explain its reasoning** (Thought)
+2. **Take an action** (Act)
+3. **Analyze the outcome/mistake** (Observe)
+
+...repeating this loop until the agent itself marks the task complete.
+
+> If the agent's response fails to accomplish the task, it can be prompted to analyze *what could have been done better* — leaving room for the agent to self-correct within the same run.
+
+**Reflexion Framework**
+Splits reflection into two distinct components:
+1. **Evaluator** — assesses the final output.
+2. **Self-reflection module** — analyzes *what went wrong*.
+
+At each step of the plan, after evaluation and self-critique, the agent proposes a **new trajectory** (revised next steps) based on that reflection.
+
+---
+
+### Agent Failure Modes and Evaluation
+
+**Step 1:** Identify the failure modes.
+**Step 2:** Measure how often each failure mode occurs.
+
+**1. Planning Failure**
+- **a.** Model picks the wrong tool for the task — this could mean: an invalid tool entirely, a valid tool with invalid parameters, or a valid tool with valid-but-incorrect parameter *values*.
+- **b.** Model fails to achieve the goal even after executing the full plan.
+- **c.** Time taken to complete the task (efficiency failure).
+- **d.** The agent believes the task is complete when it **isn't**.
+
+> To debug planning failures: analyze *which types of tasks* the agent fails at more often. Is there a specific tool the model consistently confuses with another? Would simplifying or renaming that tool help?
+
+**2. Tool Failure**
+Happens when, despite using the *correct* tool, the output is still wrong. Causes include:
+- **a.** The tool itself returns a wrong output.
+- **b.** If a translator step converts the high-level plan into executable statements, the error could be introduced during **translation**.
+- **c.** The agent doesn't actually have access to the tool it needs.
+
+**3. Agent Inefficiency**
+The agent completes the task correctly, but takes an unnecessarily long or costly path to get there.
+
+---
+
+## Topic 4: Memory
+
+Three types of memory mechanisms:
+
+| Type | Description |
+|---|---|
+| **Internal knowledge** | Knowledge baked into the model from training time. |
+| **Short-term memory** | Information that fits within the model's **context window**. We want to keep only what's most relevant to the *current* task. |
+| **Long-term memory** | An external database the model retrieves from. **RAG is the classic example** — a large, potentially ever-growing store of data, from which the model retrieves relevant info as needed. |
+
+A memory system has **two core functions:**
+1. **Memory management** — deciding what belongs in short-term vs. long-term memory.
+2. **Memory retrieval** — fetching info relevant to the current task from long-term memory.
+
+---
+
+### Memory Management
+
+Typically consists of two operations: **add** and **delete**.
+
+One approach: push anything that doesn't fit in short-term memory into long-term memory. But this requires deciding how much space to allocate to short-term memory — which is inherently limited by the model's context window.
+
+> **Example:** A rough heuristic could be something like a **30-70 split** — reserving a smaller portion of context for persistent/critical info and the rest for the current task's working context.
+
+**What stays vs. what gets dropped?**
+
+- **FIFO** (First-In-First-Out) is the simplest strategy, but it has a real downside: if a conversation starts with **detailed, important instructions**, FIFO can end up evicting that critical context first — which can be fatal to task quality.
+
+- **Summary-based storage** — instead of evicting old content outright, summarize it, stripping out redundant details while preserving the gist.
+  - **Bae et al.** extended this by creating a memory format that pairs the summary with **key information the summary alone would have missed** — avoiding lossy compression of important specifics.
+
+- **Reflection-based approach (Liu et al.)** — after a summary is created, the model is asked to:
+  1. **Analyze** the newly generated information.
+  2. **Decide** whether this new info should be inserted into memory at all.
+  3. If yes — either **merge** it with existing memory, or use it to **replace** older, now-irrelevant info.
+
+> **Example:** In a multi-turn support chat, if a user corrects an earlier statement ("Actually, my order number is 456, not 123"), a reflection-based memory system would recognize the new info supersedes the old one and *replace* it — rather than keeping both and confusing the model later.
+
+---
+
+*— Chapter ends.*
