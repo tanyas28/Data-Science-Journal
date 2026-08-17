@@ -159,5 +159,176 @@ One way to cut memory used for storing activations is to simply **not store them
 - Trade-off: this **saves memory** but **increases training time**, since parts of the forward pass effectively get run twice.
 
 ---
+## Topic 5: Finetuning Techniques
 
-*This chapter will likely get expanded further as we go — flagging it as a living doc.*
+### Parameter-Efficient Finetuning (PEFT)
+
+**Full finetuning** = the number of trainable parameters is **exactly equal** to the model's total number of parameters (everything gets updated).
+
+**Partial finetuning** = only a **fraction** of the total parameters are trainable, while still aiming for performance comparable to full finetuning.
+
+- However, naive partial finetuning is itself **parameter-inefficient** — it typically still requires updating roughly **~25% of parameters** to match full-finetuning performance on the GLUE benchmark.
+
+This is the motivation for **PEFT (Parameter-Efficient Finetuning)**, introduced by **Houlsby et al. (2019)**. The paper showed that adding a small number of extra parameters at the *right locations* in a model can achieve strong finetuning performance with far fewer trainable parameters.
+- The authors introduced **two adapter modules** into each transformer block of a BERT model.
+- The model's original parameters stayed **frozen** — only the adapters were updated.
+- **Trade-off:** this approach often **increases inference latency**, since extra layers must now be computed at inference time.
+
+> PEFT methods generally deliver strong performance using **less memory** *and* **fewer training examples** compared to the full dataset typically needed for full finetuning.
+
+---
+
+### PEFT Technique Families
+
+PEFT techniques fall into **two broad classes**:
+
+**1. Adapter-Based Methods** — techniques that add **extra trainable weights** into the model.
+- Most common: **LoRA** (see below).
+- Others: **BitFit**, **IA3** (particularly efficient for **multi-task** finetuning).
+
+**2. Soft Prompt Methods** — insert **soft prompts** (trainable *vector embeddings*, not actual words) alongside the input tokens.
+- Called "soft" prompts because, just like original **hard prompts** (real input text), they also guide the model's behavior — but they're continuous, learned vectors rather than discrete tokens.
+
+**Hard prompt vs. soft prompt — simplified flow:**
+
+```
+Hard Prompt (normal input):
+  ["Translate", "this", "sentence", ":", "Hello"]  →  [Token Embeddings]  →  Transformer  →  Output
+        (real words, human-readable)
+
+Soft Prompt (PEFT):
+  [ v1 ][ v2 ][ v3 ]  +  ["Hello"]  →  [Learned Vectors + Token Embeddings]  →  Transformer  →  Output
+   (trainable vectors,        (real word)
+    NOT actual words —
+    frozen base model,
+    only v1,v2,v3 are trained)
+```
+
+Related techniques that differ mainly in **where** the soft prompt vectors get inserted relative to the input: **Prefix-Tuning**, **P-Tuning**, and **Prompt Tuning**.
+
+---
+
+### LoRA (Low-Rank Adaptation)
+
+> **Full form, for the record: LoRA = Low-Rank Adaptation.** (You'll see it written as "Lora," "LORA," "lora" etc. in raw notes — the correct notation is **LoRA**, and that's what's used consistently from here on.)
+
+**How it works:**
+
+Given a weight matrix $W$ of dimension $(n \times m)$, LoRA decomposes the *update* to $W$ into the product of two much smaller matrices:
+
+1. Choose a **rank** $r$ (a small number, far smaller than $n$ or $m$). Create two matrices:
+   - $A$ of dimension $(n \times r)$
+   - $B$ of dimension $(r \times m)$
+2. Their product $A \times B$ gives a matrix $\Delta W$ of the **same dimensions as $W$** — this is the low-rank approximation of the "ideal" weight update.
+3. This is added to the original frozen weight matrix, scaled by a factor:
+
+$$
+W' = W + \frac{\alpha}{r} \cdot (A \times B)
+$$
+
+where:
+- $W$ = original (frozen) weight matrix
+- $\alpha$ = a hyperparameter controlling how much the new weights influence the final matrix
+- $r$ = the chosen rank
+- $W'$ = the effective weight matrix used from then on
+
+4. **During finetuning, only $A$ and $B$ are updated** — the original $W$ stays frozen throughout.
+
+LoRA is built on **low-rank factorization**, a technique long used for dimensionality reduction.
+
+**Practical guidance:**
+- LoRA is most commonly applied to the **attention weight matrices** — Query ($Q$), Key ($K$), and Value ($V$).
+- LoRA is typically applied **uniformly** to all matrices of the same type — e.g., applying it to one query matrix means applying it to *all* query matrices across the model.
+- If you can only afford to target **two** attention matrices, prioritize **Q and V**.
+- Applying LoRA to the **feedforward layers** (not just attention) tends to give even better results.
+- **Rank ($r$):** values between **4 and 64** are usually sufficient for most use cases.
+- **Ratio $r:\alpha$** is most commonly set to **8:1** or **1:8** in practice.
+
+**Why does LoRA work?**
+It's believed that LLMs have a low **intrinsic dimension** — pretraining tends to minimize a model's intrinsic dimensionality, and **larger models tend to have even lower intrinsic dimension**. This means the *useful* update needed for a new task can often be captured well by a much lower-rank matrix than the full weight matrix would suggest.
+
+---
+
+### Serving LoRA Adapters
+
+LoRA's modularity makes serving multiple finetuned variants much simpler. Two serving strategies:
+
+| Strategy | Description | Best for |
+|---|---|---|
+| **1. Merge** | Combine $A$ and $B$ into the original weights to form $W'$ **before** serving. | Serving a **single** LoRA-finetuned model — no extra runtime overhead. |
+| **2. Keep Separate** | Keep $W$, $A$, and $B$ separate, combining them **at inference time**. Adds some latency. | **Multi-LoRA serving** — multiple adapters sharing the same frozen base model. |
+
+- Option 2 makes it easy to **switch between tasks on the fly** (just swap which adapter is applied).
+- This also enables combining **multiple specialized models** instead of maintaining one giant model for every task — you can keep **one LoRA adapter per task**, all riding on the same base model.
+- Publicly available LoRA adapters exist and can be used off-the-shelf, similar to pretrained models.
+
+---
+
+### QLoRA (Quantized LoRA)
+
+An interesting variation: reduce memory usage further by **quantizing** the model's weights, activations, or gradients *during* finetuning.
+
+- QLoRA uses a 4-bit format called **NF4 (Normal Float 4)**, which quantizes values based on the insight that pretrained weights typically follow a **normal distribution centered around zero (median 0)** — so the quantization levels are optimized for that distribution rather than spread out uniformly.
+- Alongside NF4, QLoRA also uses an **efficient paging algorithm** that automates data transfer between GPU and CPU memory.
+- **Main limitation:** the NF4 conversion process itself is **computationally costly**.
+
+---
+
+## Model Merging and Multi-Task Finetuning
+
+You can take two (or more) foundation models and **combine** them to create a single, better-performing model. Any or all of the models being merged may have been individually finetuned beforehand.
+
+This is especially relevant for **adapter-based** models: given two models finetuned from the *same base*, their adapters can be merged into a **single combined adapter**.
+
+Model merging is one approach to **multi-task finetuning**, alongside:
+- **Simultaneous finetuning** — training on multiple tasks at once.
+- **Sequential finetuning** — training on tasks one after another.
+- **Model merging** — finetune separately (often in parallel) on each task, then merge afterward. Finetuning each task in isolation lets the model learn that task more thoroughly before combining.
+
+> Model merging is also a way to enable a simple form of **federated learning** — since each model can be finetuned independently (e.g., on different, siloed data sources) and only the resulting weights/adapters need to be shared and merged centrally, rather than pooling the raw data itself.
+
+---
+
+### Model Merging Approaches
+
+Merging approaches differ in **how** the constituent parameters are combined. Three key approaches: **Summing**, **Layer Stacking**, and **Concatenation**.
+
+#### 1. Summing
+
+Involves adding the weight values of the constituent models together. Two methods:
+
+**a) Linear Combination**
+Includes both a simple **average** and a **weighted average**:
+
+$$
+\text{merge}(A, B) = \frac{w_A \cdot A + w_B \cdot B}{w_A + w_B}
+$$
+
+- If the parameters of the two models are on **very different scales**, one should be scaled to bring both into the same range before merging.
+- Most effective for models that were **finetuned on top of the same base model**.
+- Commonly used in **federated learning**.
+  > **Federated learning, briefly:** multiple parties each train a model locally on their own private data (which never leaves their device/server), and only the resulting model updates/weights are sent to a central server to be combined — preserving data privacy while still benefiting from everyone's data collectively.
+- Models are also often merged linearly at the **component level** — e.g., combining just their adapters rather than the full model.
+
+**Task Vectors**
+Once a model has been finetuned for a specific task, subtracting the **base model's weights** from the finetuned model's weights yields a vector that captures *just the change* — the "task vector" (also called **delta parameters**).
+
+- Task vectors enable **task arithmetic**: you can **add** two task vectors together to *combine* their capabilities, or **subtract** one to *reduce/remove* a capability from a model.
+
+**b) Spherical Linear Interpolation (SLERP)**
+In simple terms: imagine each model's parameter vector as a point on the surface of a **sphere**. SLERP draws the **shortest path along the sphere's surface** between two such points, and the merged model is a point somewhere along that arc.
+- How close the merged point sits to either original vector is controlled by an **interpolation factor**, typically ranging from **0 to 1**.
+
+#### 2. Layer Stacking
+*(Brief — combines models by stacking their layers rather than averaging weights directly.)*
+
+#### 3. Concatenation
+*(Brief — combines models by concatenating their parameters/components rather than blending them.)*
+
+---
+
+### Pruning Redundant Task-Specific Parameters
+
+During finetuning, many parameters get adjusted — but **not all of them meaningfully contribute** to the performance difference. Parameters that don't contribute much are considered **redundant** to the finetuning outcome, and it's often beneficial to **prune** them before merging.
+
+- Techniques like **TIES** and **DARE** first **prune redundant parameters from each task vector** *before* merging multiple task vectors together — reducing interference between tasks and producing cleaner merged models.
