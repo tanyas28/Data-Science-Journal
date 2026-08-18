@@ -319,6 +319,8 @@ Once a model has been finetuned for a specific task, subtracting the **base mode
 In simple terms: imagine each model's parameter vector as a point on the surface of a **sphere**. SLERP draws the **shortest path along the sphere's surface** between two such points, and the merged model is a point somewhere along that arc.
 - How close the merged point sits to either original vector is controlled by an **interpolation factor**, typically ranging from **0 to 1**.
 
+---
+
 #### 2. Layer Stacking
 
 1. Takes different layers from one or more models and **stacks them on top of each other** to build a new model.
@@ -415,3 +417,5 @@ The exact set depends on the framework chosen, but the most common ones are:
 
 **4. Prompt Loss Weight**
 > During SFT, the (input, output) pair is used to compute loss over the entire sequence — but ideally, the model should be penalized mainly for getting the **output/response** wrong, not for the **input/prompt** portion (which it doesn't need to "generate," just read). **Prompt loss weight** controls how much the **loss on the prompt tokens** counts relative to the loss on the response tokens — typically it's downweighted (e.g., set low or to zero) so the model focuses its learning on generating good **responses**, not on memorizing prompts.
+
+---
