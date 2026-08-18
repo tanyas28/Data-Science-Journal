@@ -320,10 +320,30 @@ In simple terms: imagine each model's parameter vector as a point on the surface
 - How close the merged point sits to either original vector is controlled by an **interpolation factor**, typically ranging from **0 to 1**.
 
 #### 2. Layer Stacking
-*(Brief — combines models by stacking their layers rather than averaging weights directly.)*
+
+1. Takes different layers from one or more models and **stacks them on top of each other** to build a new model.
+2. Also known as **passthrough merging** or **"frankenmerging"**.
+3. This method produces a genuinely **new architecture** with a unique parameter count — unlike averaging-based merges (e.g., linear combination), the result isn't the same shape as the inputs.
+4. Normally requires **another round of finetuning** after the initial stacking, since the newly stacked layers haven't learned to work together yet.
+5. Can be used to build **Mixture-of-Experts (MoE)** models.
+6. Another common use case: **upscaling** a model (making it bigger) using an existing smaller model as a starting point.
+
+**Depthwise Scaling — a stacking approach:**
+1. Make a **copy** of the original pretrained model.
+2. Merge the original and the copy by **summing certain layers** and **stacking the rest** — the decision of *which* layers to sum vs. stack is made based on the desired target model size.
+3. **Further train** this newly upscaled model toward the target performance.
+
+---
 
 #### 3. Concatenation
-*(Brief — combines models by concatenating their parameters/components rather than blending them.)*
+
+Simply **concatenate** the parameters of two (or more) models side by side, rather than blending or averaging them.
+
+- The merged component's total parameter count = the **sum** of parameters across all constituent components.
+
+> **Example:** If Model A's feedforward layer has a weight matrix of shape $(d, h_A)$ and Model B's equivalent layer has shape $(d, h_B)$, concatenation produces a combined layer of shape $(d, h_A + h_B)$ — both sets of parameters now sit side by side in the same layer, rather than being merged into a single $(d, h_A)$-shaped matrix the way linear combination would.
+
+- **Not generally recommended**, because unlike other merging approaches, it does **not reduce the memory footprint** compared to just serving the two original models separately — you're still paying for the full parameter count of both.
 
 ---
 
@@ -332,3 +352,66 @@ In simple terms: imagine each model's parameter vector as a point on the surface
 During finetuning, many parameters get adjusted — but **not all of them meaningfully contribute** to the performance difference. Parameters that don't contribute much are considered **redundant** to the finetuning outcome, and it's often beneficial to **prune** them before merging.
 
 - Techniques like **TIES** and **DARE** first **prune redundant parameters from each task vector** *before* merging multiple task vectors together — reducing interference between tasks and producing cleaner merged models.
+
+---
+
+## Topic 6: Finetuning Tactics
+
+### Finetuning Framework and Base Model Selection
+
+Assuming a suitable base model has already been chosen for the use case, **OpenAI's finetuning best practices** outline two development paths:
+
+**1. Progression Path**
+1. Test your **finetuning code** using the **cheapest and fastest** model available — just to confirm the pipeline actually works end-to-end.
+2. Test the **dataset** by finetuning a **mid-tier** model on it.
+3. Run a few experiments on the **best-performing** model to see how far performance can be pushed.
+4. Once results look good, run full training across **all model tiers** to map out a **performance-vs-cost table**, then pick the final model based on that trade-off.
+
+**2. Distillation Path**
+1. Start with a **small dataset** and the **best available model**. Finetune this model on the small dataset.
+2. Use this finetuned model to **generate more training data** (synthetic data generation).
+3. Train a **cheaper model** on this newly generated, larger dataset.
+
+---
+
+### Finetuning Method
+
+1. If finetuning has been decided on, **start with LoRA** first. Only attempt **full finetuning** afterward if LoRA isn't sufficient.
+2. The right method also depends on **data volume** — PEFT methods can perform well even on **small training datasets**.
+3. Also factor in: **how many** finetuned model variants you'll need, and **how they'll be served**.
+
+**Finetuning Frameworks — three tiers of control:**
+
+| Approach | Description |
+|---|---|
+| **Managed API** | Easiest option — similar to using a model API. Provide your base model + data, get back a finetuned model. Minimal control, minimal setup. |
+| **Finetuning-specific frameworks** | More flexibility. Examples: **LLaMA-Factory, Unsloth, PEFT, Axolotl, LitGPT**. |
+| **Fully custom / DIY** | Maximum flexibility, but requires managing your own compute. Frameworks that help with **distributed training** here include **DeepSpeed, PyTorch Distributed, ColossalAI**. |
+
+---
+
+### Finetuning Hyperparameters
+
+The exact set depends on the framework chosen, but the most common ones are:
+
+**1. Learning Rate**
+> Controls **how big a step** the optimizer takes when updating weights based on the computed gradient. Too high → training becomes unstable/overshoots; too low → training is painfully slow or gets stuck.
+
+- Typical range: **1e-7 to 1e-3**.
+- Common practice: take the learning rate used at the **end of the pretraining phase**, and multiply it by a constant between **0.1 and 1** as a starting point for finetuning.
+- **Reading the loss curve to tune it:**
+  - If loss changes **too erratically/wildly** → learning rate is likely **too large**.
+  - If loss decreases **very slowly**, or only budges after a long time → learning rate is likely **too small**.
+
+**2. Batch Size**
+> The **number of training examples** processed together in one forward/backward pass before the model's weights are updated once.
+
+**3. Number of Epochs**
+> One **epoch** = one complete pass through the entire training dataset.
+
+- **Reading training vs. validation loss to pick the right number of epochs:**
+  - If both **training and validation loss** are still decreasing → likely **more epochs** would help.
+  - If **training loss keeps decreasing** but **validation loss starts increasing** → the model is beginning to **overfit** — this is usually the point to stop training (or where the best checkpoint lies).
+
+**4. Prompt Loss Weight**
+> During SFT, the (input, output) pair is used to compute loss over the entire sequence — but ideally, the model should be penalized mainly for getting the **output/response** wrong, not for the **input/prompt** portion (which it doesn't need to "generate," just read). **Prompt loss weight** controls how much the **loss on the prompt tokens** counts relative to the loss on the response tokens — typically it's downweighted (e.g., set low or to zero) so the model focuses its learning on generating good **responses**, not on memorizing prompts.
