@@ -1,0 +1,249 @@
+# Chapter 8: Dataset Engineering
+
+The purpose of this chapter is to learn how to **curate a dataset** that is **affordable, high quality, and well-suited** to your application.
+
+Data is needed to train/finetune a foundation model toward the desired behavior. This field has grown large enough to have its own name — **Data-Centric AI** — which focuses on the best ways to curate data for a given benchmark, application, or use case (as opposed to *model*-centric AI, which focuses on improving architectures/training methods while holding data fixed).
+
+---
+
+## Topic 1: Data Curation
+
+Data curation means **collecting the right data** for your application. To do this well, you need to understand how the model actually **learns** from data: the training data should directly reflect the **behavior** you want the final application to exhibit.
+
+> **Example:** If you want your application to always respond in a polite, concise tone and refuse out-of-scope questions, your training examples need to actually *demonstrate* that — polite/concise responses, and clear refusals on out-of-scope prompts. If your dataset never shows a refusal example, the model has no way to learn when *not* to answer.
+
+Three major criteria to keep in mind while curating data:
+1. **Data quality**
+2. **Data quantity**
+3. **Data coverage**
+
+---
+
+### 1. Data Quality
+
+As stressed in Chapter 7: **high-quality small data** can improve performance far more than **low-quality huge data**.
+
+> Data is considered "high quality" if it makes the finetuning process **efficient and reliable**.
+
+**Six characteristics of high-quality data:**
+
+| # | Characteristic | Meaning |
+|---|---|---|
+| 1 | **Relevant** | Data matches the task and use case you're actually targeting. |
+| 2 | **Aligned** | Data matches the requirements/goals of the application. |
+| 3 | **Consistent** | Similar examples should be labeled/scored using the **same criteria**. |
+| 4 | *(quality bar continued)* | *(see consistency example below)* |
+| 5 | **Correctly formatted** | Output examples strictly match the exact format the model needs to produce. |
+| 6 | **Sufficiently unique** | Some duplication is fine, but *too much* duplication biases the model. |
+
+> **Example — why consistency matters:** Say you're training a model to write short stories, and each story in your dataset is rated on a 1–5 quality scale (used, e.g., for preference finetuning). If two stories of similar quality get different scores — one rater gives a 5, another gives the same quality story a 4 — that's an **inconsistent** labeling signal. This gets worse if multiple AI models were used to generate/rate the dataset, since different models may apply different implicit standards. Without a **fixed rating guideline** applied consistently across the whole dataset, the model receives contradictory signals and finetuning quality suffers.
+
+> **Example — correctly formatted:** If your application generates SQL queries, every example in your dataset must contain **syntactically valid, correctly formatted SQL** — not just "close enough" queries — since the model will learn to imitate the format shown, mistakes included.
+
+Beyond these six, data must also be strictly **compliant with all applicable laws and policies** (e.g., privacy, copyright, data licensing).
+
+---
+
+### 2. Data Quantity
+
+How much data do you actually need? Most often, this comes down to **budget** — but it also depends on:
+- The **finetuning technique** chosen (e.g., full finetuning vs. PEFT — PEFT can work well with less data).
+- The **complexity of the task** the application needs to perform.
+- The **quality of the base model** you're starting from (a stronger base model often needs less task-specific data).
+
+**Practical way to experiment with data quantity:**
+1. Start with a **small, high-quality dataset** and finetune.
+2. Check if performance improves. If there's a clear improvement trend, **add more data** and repeat.
+3. To estimate how much more data might help: finetune on **subsets** of your current dataset (e.g., 10%, 25%, 50%, 100%) and **plot performance vs. dataset size**.
+   - A **steep upward slope** on this curve suggests more data would likely keep helping.
+   - A **flattening curve** suggests you're near diminishing returns — more data won't buy much more performance.
+
+---
+
+### 3. Data Coverage
+
+Your dataset needs **diversity** — but diversity *within the relevant domain*, not diversity for its own sake.
+
+> **Example:** An application built as a financial advisor doesn't need to "know" cult literature or unrelated trivia — diversity here means covering a **wide range of scenarios within finance** (different account types, market conditions, user question phrasings, edge cases), not going outside the domain entirely.
+
+- More diverse examples **within the target domain** generally lead to better generalization.
+- Aim for a **data mix that closely resembles the real-world distribution** of problems your application will actually face in production.
+
+---
+
+## Topic 2: Data Acquisition and Annotation
+
+### Acquisition
+
+One powerful approach: build a **data flywheel** for your application — a system that captures data **in real time** as the application runs in production. This could include:
+- The prompt given
+- The model's response
+- Any mistakes made
+- What correction/feedback followed
+- **User feedback** (thumbs up/down, corrections, etc.)
+
+Over time, this continuously growing, real-world dataset becomes one of the most valuable assets for improving the application.
+
+### Annotation
+
+Annotating a dataset is genuinely **challenging** — mainly because of a **lack of clear, consistent annotation guidelines**.
+
+> In practice, annotation guidelines usually end up being **the same as your evaluation guidelines** (see Chapter 4). This is exactly why investing time upfront in designing solid **evaluation criteria and rubrics** pays off twice — once for evaluation, and again for annotation.
+
+---
+
+## Topic 3: Data Augmentation and Synthesis
+
+### Data Augmentation
+
+Not a new idea — it's long been used in traditional deep learning, especially for **vision models**: rotating images, flipping them, adjusting colors, etc., to create more training examples from existing ones.
+
+**Why it matters:** augmentation makes an application more **robust** — small, superficial changes to the input shouldn't change the model's output, and augmentation trains the model to be invariant to exactly those kinds of changes.
+
+**For text models**, common augmentation techniques include:
+- Replacing words with **synonyms** (similar meaning).
+- **Rephrasing** sentences while preserving meaning.
+- **Round-trip translation** (translate to another language and back) to get natural paraphrases.
+- Introducing **typos** or minor noise, so the model stays robust to imperfect real-world input.
+
+### Data Synthesis
+
+Synthesis is about **generating new data from scratch** — especially useful when real data isn't accessible (e.g., due to privacy, cost, or rarity of certain scenarios).
+
+Two traditional approaches:
+
+**1. Rule-Based Synthesis**
+The simplest synthesis method. Works well when your target data has a **fixed template/structure** with defined fields that just need to be filled in.
+
+> **Example:** Generating synthetic customer support tickets using a template like: `"My {product} stopped working after {event}. I need help with {issue_type}."` — a script can programmatically fill in `{product}`, `{event}`, and `{issue_type}` from predefined lists to generate thousands of varied-but-structurally-consistent examples very cheaply. This works great for structured formats but produces less natural/varied language than real user data.
+
+**2. Simulation**
+Used when there are many different possible **scenarios**, and you want to observe/capture how decisions get made, what mistakes occur, etc. — by literally **running a simulated environment** rather than collecting real-world data.
+
+> **Example:** Training a self-driving car model — you can simulate an environment containing reckless drivers, heavy trucks, sudden pedestrian crossings, and adverse weather, then capture the resulting sensor data + correct/incorrect decisions as training data. This lets you generate rare, dangerous, or expensive-to-collect scenarios (like near-accidents) safely and repeatedly, which would be impractical or unsafe to gather from real driving alone.
+
+> Both methods share a key advantage: they let you generate **rare or hard-to-collect edge cases** at scale, and a key risk: synthetic data can fail to capture the full messiness/unpredictability of real-world data, so it's often best used to **supplement**, not fully replace, real data.# Chapter 8: Dataset Engineering
+
+The purpose of this chapter is to learn how to **curate a dataset** that is **affordable, high quality, and well-suited** to your application.
+
+Data is needed to train/finetune a foundation model toward the desired behavior. This field has grown large enough to have its own name — **Data-Centric AI** — which focuses on the best ways to curate data for a given benchmark, application, or use case (as opposed to *model*-centric AI, which focuses on improving architectures/training methods while holding data fixed).
+
+---
+
+## Topic 1: Data Curation
+
+Data curation means **collecting the right data** for your application. To do this well, you need to understand how the model actually **learns** from data: the training data should directly reflect the **behavior** you want the final application to exhibit.
+
+> **Example:** If you want your application to always respond in a polite, concise tone and refuse out-of-scope questions, your training examples need to actually *demonstrate* that — polite/concise responses, and clear refusals on out-of-scope prompts. If your dataset never shows a refusal example, the model has no way to learn when *not* to answer.
+
+Three major criteria to keep in mind while curating data:
+1. **Data quality**
+2. **Data quantity**
+3. **Data coverage**
+
+---
+
+### 1. Data Quality
+
+As stressed in Chapter 7: **high-quality small data** can improve performance far more than **low-quality huge data**.
+
+> Data is considered "high quality" if it makes the finetuning process **efficient and reliable**.
+
+**Six characteristics of high-quality data:**
+
+| # | Characteristic | Meaning |
+|---|---|---|
+| 1 | **Relevant** | Data matches the task and use case you're actually targeting. |
+| 2 | **Aligned** | Data matches the requirements/goals of the application. |
+| 3 | **Consistent** | Similar examples should be labeled/scored using the **same criteria**. |
+| 4 | *(quality bar continued)* | *(see consistency example below)* |
+| 5 | **Correctly formatted** | Output examples strictly match the exact format the model needs to produce. |
+| 6 | **Sufficiently unique** | Some duplication is fine, but *too much* duplication biases the model. |
+
+> **Example — why consistency matters:** Say you're training a model to write short stories, and each story in your dataset is rated on a 1–5 quality scale (used, e.g., for preference finetuning). If two stories of similar quality get different scores — one rater gives a 5, another gives the same quality story a 4 — that's an **inconsistent** labeling signal. This gets worse if multiple AI models were used to generate/rate the dataset, since different models may apply different implicit standards. Without a **fixed rating guideline** applied consistently across the whole dataset, the model receives contradictory signals and finetuning quality suffers.
+
+> **Example — correctly formatted:** If your application generates SQL queries, every example in your dataset must contain **syntactically valid, correctly formatted SQL** — not just "close enough" queries — since the model will learn to imitate the format shown, mistakes included.
+
+Beyond these six, data must also be strictly **compliant with all applicable laws and policies** (e.g., privacy, copyright, data licensing).
+
+---
+
+### 2. Data Quantity
+
+How much data do you actually need? Most often, this comes down to **budget** — but it also depends on:
+- The **finetuning technique** chosen (e.g., full finetuning vs. PEFT — PEFT can work well with less data).
+- The **complexity of the task** the application needs to perform.
+- The **quality of the base model** you're starting from (a stronger base model often needs less task-specific data).
+
+**Practical way to experiment with data quantity:**
+1. Start with a **small, high-quality dataset** and finetune.
+2. Check if performance improves. If there's a clear improvement trend, **add more data** and repeat.
+3. To estimate how much more data might help: finetune on **subsets** of your current dataset (e.g., 10%, 25%, 50%, 100%) and **plot performance vs. dataset size**.
+   - A **steep upward slope** on this curve suggests more data would likely keep helping.
+   - A **flattening curve** suggests you're near diminishing returns — more data won't buy much more performance.
+
+---
+
+### 3. Data Coverage
+
+Your dataset needs **diversity** — but diversity *within the relevant domain*, not diversity for its own sake.
+
+> **Example:** An application built as a financial advisor doesn't need to "know" cult literature or unrelated trivia — diversity here means covering a **wide range of scenarios within finance** (different account types, market conditions, user question phrasings, edge cases), not going outside the domain entirely.
+
+- More diverse examples **within the target domain** generally lead to better generalization.
+- Aim for a **data mix that closely resembles the real-world distribution** of problems your application will actually face in production.
+
+---
+
+## Topic 2: Data Acquisition and Annotation
+
+### Acquisition
+
+One powerful approach: build a **data flywheel** for your application — a system that captures data **in real time** as the application runs in production. This could include:
+- The prompt given
+- The model's response
+- Any mistakes made
+- What correction/feedback followed
+- **User feedback** (thumbs up/down, corrections, etc.)
+
+Over time, this continuously growing, real-world dataset becomes one of the most valuable assets for improving the application.
+
+### Annotation
+
+Annotating a dataset is genuinely **challenging** — mainly because of a **lack of clear, consistent annotation guidelines**.
+
+> In practice, annotation guidelines usually end up being **the same as your evaluation guidelines** (see Chapter 4). This is exactly why investing time upfront in designing solid **evaluation criteria and rubrics** pays off twice — once for evaluation, and again for annotation.
+
+---
+
+## Topic 3: Data Augmentation and Synthesis
+
+### Data Augmentation
+
+Not a new idea — it's long been used in traditional deep learning, especially for **vision models**: rotating images, flipping them, adjusting colors, etc., to create more training examples from existing ones.
+
+**Why it matters:** augmentation makes an application more **robust** — small, superficial changes to the input shouldn't change the model's output, and augmentation trains the model to be invariant to exactly those kinds of changes.
+
+**For text models**, common augmentation techniques include:
+- Replacing words with **synonyms** (similar meaning).
+- **Rephrasing** sentences while preserving meaning.
+- **Round-trip translation** (translate to another language and back) to get natural paraphrases.
+- Introducing **typos** or minor noise, so the model stays robust to imperfect real-world input.
+
+### Data Synthesis
+
+Synthesis is about **generating new data from scratch** — especially useful when real data isn't accessible (e.g., due to privacy, cost, or rarity of certain scenarios).
+
+Two traditional approaches:
+
+**1. Rule-Based Synthesis**
+The simplest synthesis method. Works well when your target data has a **fixed template/structure** with defined fields that just need to be filled in.
+
+> **Example:** Generating synthetic customer support tickets using a template like: `"My {product} stopped working after {event}. I need help with {issue_type}."` — a script can programmatically fill in `{product}`, `{event}`, and `{issue_type}` from predefined lists to generate thousands of varied-but-structurally-consistent examples very cheaply. This works great for structured formats but produces less natural/varied language than real user data.
+
+**2. Simulation**
+Used when there are many different possible **scenarios**, and you want to observe/capture how decisions get made, what mistakes occur, etc. — by literally **running a simulated environment** rather than collecting real-world data.
+
+> **Example:** Training a self-driving car model — you can simulate an environment containing reckless drivers, heavy trucks, sudden pedestrian crossings, and adverse weather, then capture the resulting sensor data + correct/incorrect decisions as training data. This lets you generate rare, dangerous, or expensive-to-collect scenarios (like near-accidents) safely and repeatedly, which would be impractical or unsafe to gather from real driving alone.
+
+> Both methods share a key advantage: they let you generate **rare or hard-to-collect edge cases** at scale, and a key risk: synthetic data can fail to capture the full messiness/unpredictability of real-world data, so it's often best used to **supplement**, not fully replace, real data.
