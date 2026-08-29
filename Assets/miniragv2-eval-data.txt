@@ -1,0 +1,39 @@
+Question 1: What is the primary purpose of Neural Radiance Fields (NeRF) in 3D computer graphics?
+
+expected answer: NeRF uses neural networks to generate novel views of complex 3D scenes.
+
+Question 2: How do NeRF models represent a scene differently from traditional graphics pipelines?
+
+expected answer: Unlike traditional methods relying on explicit geometry and texture maps, NeRF models learn an implicit volumetric representation by optimizing a continuous function that maps spatial coordinates and viewing directions to color and volume density.
+
+Question 3: What kind of neural network is used to parameterize the function in NeRF models?
+
+expected answer: The function is parameterized by a multilayer perceptron (MLP).
+
+Question 4: What is a core innovation in NeRF regarding its rendering technique?
+
+expected answer: A core innovation is the use of volumetric rendering.
+
+Question 5: What visual phenomena can NeRF's volumetric rendering capture that are difficult for traditional rasterization?
+
+expected answer: It can capture complex visual phenomena like soft shadows, semi-transparency, and view-dependent reflections.
+
+Question 6: How is a NeRF model trained?
+
+expected answer: Training involves optimizing the MLP to minimize the difference between rendered views and a set of input images taken from known camera poses.
+
+Question 7: What is a significant computational challenge associated with NeRF, and what approaches are used to address it?
+
+expected answer: A computational bottleneck is that training can take hours and rendering each frame requires hundreds of MLP evaluations. Research addresses this by accelerating training and inference using hierarchical sampling, voxel grids, hash encoding, and GPU parallelism.
+
+Question 8: What is the role of positional encoding in NeRF, and why is it important?
+
+expected answer: Positional encoding injects high-frequency functions of input coordinates into the network, enabling MLPs to better represent high-frequency details and overcome spectral bias.
+
+Question 9: How have NeRF-like models been adapted for dynamic scenes?
+
+expected answer: Techniques like D-NeRF or Neural Scene Flow Fields extend the framework to learn temporally coherent representations, capturing motion and deformation in scenes.
+
+Question 10: What are some challenges and new frontiers for NeRF integration with traditional graphics tools and in content creation?
+
+expected answer: Challenges include converting neural representations into mesh-based formats for real-time engines. New frontiers involve coupling NeRFs with generative models (like GANs or diffusion models) to synthesize 3D content from minimal inputs.
