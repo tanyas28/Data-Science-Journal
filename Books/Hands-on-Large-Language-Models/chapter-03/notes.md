@@ -79,3 +79,48 @@ Attention is the most **computationally expensive** part of the forward pass, so
 - **Grouped-query attention** instead divides queries into **groups**, where each **group shares a single key-value matrix** for its calculations — reducing memory and compute versus giving every single query its own K/V pair, while retaining more flexibility than giving *all* queries just one shared K/V pair (multi-query attention, the more extreme version of this idea).
 
 > **Example:** With 8 query heads and grouped-query attention using 2 groups, heads 1–4 all share one K/V matrix, and heads 5–8 share another — instead of needing 8 separate K/V matrices (traditional multi-head attention) or squeezing all 8 down to just 1 shared K/V matrix (multi-query attention).
+
+**3. Flash Attention**
+
+A popular technique that speeds up **both training and inference** of transformer LLMs on GPUs.
+
+- It works by optimizing the attention **calculation itself** — specifically, by being smart about **what values get loaded and moved** between the GPU's **shared memory** (small, very fast) and its **high-bandwidth memory / HBM** (larger, slower — see Chapter 9).
+- The core insight: moving data between these memory tiers is often the actual bottleneck, more so than the raw math — so Flash Attention restructures the computation to minimize unnecessary memory reads/writes, rather than reducing the number of operations performed.
+
+---
+
+### Transformer Block Variants
+
+The **traditional** transformer block: **Attention layer → Feedforward layer**.
+
+Modern variants introduce a few refinements:
+
+1. **Pre-normalization** — adding a **normalization layer before** the attention layer (rather than after), which **reduces training time** by keeping gradients more stable through the network.
+2. **RMSNorm** instead of standard **LayerNorm** — a more computationally efficient normalization technique.
+3. **SwiGLU** instead of the classic **ReLU** activation function — modern variants commonly swap in SwiGLU for improved performance in the feedforward layers.
+
+---
+
+### Positional Embeddings (RoPE)
+
+**The problem:** attention gives the model *context* (which tokens relate to which), but it doesn't inherently capture **word order** — since all tokens are processed in parallel, the model has no built-in sense of *position*. So an explicit mechanism is needed to feed positional information into the network.
+
+**Evolution of positional encoding:**
+
+| Approach | How it works | Limitation |
+|---|---|---|
+| **Static numeral encoding** | Literally assign position values — token 1 gets "1," token 2 gets "2," etc. | Doesn't scale well as sequences get long, and the raw numbers become large/unwieldy. |
+| **Sinusoidal encoding** (original "Attention Is All You Need" paper) | Position is encoded using a **sine/cosine function**, producing a smooth, bounded positional signal. | Still a **fixed/static** function — struggles to scale gracefully as transformers moved to much larger context windows. |
+
+**The scaling problem in practice:** as context windows grew, static positional methods became harder to apply consistently. For example, if a transformer has a context window of **1,000 tokens**, but a given input only actually contains **900 real tokens**, the remaining **100 positions** get filled with **padding**. Different data-packing strategies fill in this padding differently — and static positional functions aren't flexible enough to handle these inconsistent, dynamically-shaped inputs well.
+
+**The solution: RoPE (Rotary Positional Embeddings)**
+
+RoPE captures **both absolute and relative** token position information.
+
+- Positional encoding is applied **during the forward pass, before the attention mechanism** runs.
+- This positional information is **mixed directly into the Query and Key matrices**, *before* they're multiplied together during attention's relevance-scoring step.
+
+> **Example — why "rotary" and why it captures *relative* position:** Think of each token's embedding as a vector, and RoPE **rotates** that vector by an angle proportional to its position in the sequence — token 1 gets rotated slightly, token 2 gets rotated a bit more, token 50 gets rotated much further, and so on. Because attention scoring involves comparing (multiplying) the Query and Key vectors of two tokens, and rotation is a mathematically well-behaved operation, the *result* of that comparison ends up depending only on the **angular difference** between the two tokens' rotations — i.e., on **how far apart they are** in the sequence, rather than their exact absolute positions.
+>
+> Concretely: the angular "distance" between token 5 and token 8 (a gap of 3) ends up mathematically similar to the angular distance between token 50 and token 53 (also a gap of 3) — so the model can learn robust notions like *"the previous word"* or *"three words back"* that generalize across the whole sequence, rather than having to separately memorize what "position 5" vs. "position 50" mean in isolation. This is exactly what makes RoPE much more robust to varying sequence lengths and padding than the older static/sinusoidal approaches.
