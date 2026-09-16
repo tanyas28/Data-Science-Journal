@@ -38,9 +38,3 @@ books/
 - Notes are living documents — later chapters may get revised as understanding deepens or as a book gets re-read.
 
 ---
-
-## Books in this folder
-
-| Book | Status |
-|---|---|
-| `ai-engineering` *(rename to actual slug)* | Chapters 3–10 notes complete |
