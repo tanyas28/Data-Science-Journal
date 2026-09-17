@@ -23,10 +23,10 @@ books/
     └── ...
 ```
 
-- **`<book-slug>`** — lowercase, hyphenated short name of the book (e.g. `ai-engineering`).
-- **`chapter-NN-<topic>`** — zero-padded chapter number + short topic slug, so folders sort correctly and are identifiable at a glance (e.g. `chapter-06-rag-and-agents`).
+- **`<book-slug>`** — lowercase, hyphenated name of the book (e.g. `Building-AI-Applications-Using-Foundation-model`).
+- **`chapter-NN`** — zero-padded chapter number, so folders sort correctly and are identifiable at a glance (e.g. `chapter-06`).
 - **`notes.md`** — the structured notes for that chapter: headings per topic, tables for comparisons, LaTeX (`$...$` / `$$...$$`) for formulas, and short examples where they clarify a concept.
-- **`implementation/`** — only present where a chapter's concepts were worth coding up (e.g. a tiny TF-IDF scorer, a toy LoRA implementation, an RRF ranking demo). Not every chapter has one.
+- **`implementation/`** — only present where a chapter's concepts were worth coding up (e.g. attention function, tokenization and word embeddings). Not every chapter has one.
 
 ---
 
@@ -38,9 +38,3 @@ books/
 - Notes are living documents — later chapters may get revised as understanding deepens or as a book gets re-read.
 
 ---
-
-## Books in this folder
-
-| Book | Status |
-|---|---|
-| `ai-engineering` *(rename to actual slug)* | Chapters 3–10 notes complete |
