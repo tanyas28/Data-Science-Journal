@@ -57,7 +57,7 @@ This approach works well when you have **labeled data** (supervised training). B
 
 ---
 
-## What If the Data Is Unlabeled?
+### What If the Data Is Unlabeled?
 
 With unlabeled data, **clustering** or other unsupervised algorithms can group similar examples together — but they can't tell you *what each cluster actually means* (i.e., no ground-truth label attached).
 
@@ -74,3 +74,46 @@ With unlabeled data, **clustering** or other unsupervised algorithms can group s
 5. Assign each document to whichever label embedding it's **most similar to**.
 
 > **Result:** a working classifier — able to sort reviews into "good" or "bad" — built entirely by giving categories a **descriptive name**, with **zero labeled training examples** needed.
+
+---
+
+## Text Classification Using Generative Models
+
+Let's start our discussion with two kinds of generative models: one that has the complete transformer architecture — that is, both encoder and decoder units — like **Text-to-Text Transfer Transformer**, and one that is decoder-only, like **GPT**.
+
+### TEXT-TO-TEXT-TRANSFER (T5) Model
+
+These use **12 encoder and 12 decoder units** stacked in the architecture.
+
+They were trained using a method called **masked language modeling**, wherein you basically mask a few words of the input and let the model generate the output. For this model, instead of masking only one token, a **set of tokens** was masked in the input sequence.
+
+After the pretraining, in the finetuning step, this model is finetuned by **converting various different tasks into a seq-2-seq task**, hence training it for multiple tasks.
+
+> **Example:** giving it prompts like *"translate this," "review this," "summarize this"* — the model learns to generalize over a set of tasks, since every task is reframed as "take this input text, produce this output text," regardless of what the task actually is.
+
+### ChatGPT
+
+1. This is a **decoder-only** model.
+2. It was trained using what we call **preference tuning** — which is basically: the engineers first created a dataset that has an input prompt and a **preferred output response** for pretraining. Then they fine-tuned it by **ranking the responses** that the model gave. Over time, the model learns to give outputs that are more **human-preferred**.
+
+---
+
+### Using These Models for Text Classification
+
+Now, how do we use these models for our text classification task? Well, we would need to give **context** to these models. This is where we use **prompts** — to give instructions to these models. Over time, we keep refining these prompts to get better results, known as **prompt engineering**.
+
+**Method 1: Using T5**
+
+What we can do is, we can **prefix each text in the dataset** (movie review) with a question text: *"What is the type of review, give negative or positive."*
+
+Then we can run the model to give its prediction for each text, finally printing the evaluation matrix. For that, we would need to convert the text category into **0 and 1**.
+
+> **Example:** Input to the model becomes: *"What is the type of review, give negative or positive. Review: 'This movie was a complete waste of time.'"* → model outputs *"negative"* → mapped to `1` for evaluation.
+
+**Method 2: ChatGPT**
+
+When we use proprietary models like GPT, we access them using **APIs**, and these models have a format in which they accept prompts and so on — rest stays the same. In the prompt, we can ask the model to **assume a role**, and instruct it to give `0` for a positive movie review and `1` for a negative one.
+
+And then we can go and print the evaluation metric.
+
+> **Example:** A prompt like: *"You are a sentiment classification assistant. For the following movie review, respond with only 0 if it is positive, or 1 if it is negative. Review: '...'"* — the "assume a role" instruction (system prompt) helps constrain the model to respond in the exact format needed for automated evaluation, rather than a free-form explanation.
