@@ -134,3 +134,31 @@ But LLMs only know how to process text, hence we need to define to the LLM what 
 3. **Observation**
 
 These steps are followed **iteratively**.
+
+the react template looks something like:
+
+react_temp = """ Answer the fowllowing questions as best as you can. You have acess to following:
+
+{tools}
+
+use the format:
+
+Question: the input 
+thought: you should think about what to do.
+Action: the is is the action plan where you plan the implementation, and the step should be one of {tool_names}
+Action Input: input for the action.
+Observation: the result of the action.....(you can repeat thought/action/action input/obeservation N times)
+
+thought: I know final answer.
+Final answer: the final answer to the question.
+
+Start!
+
+Question: {input}
+Thought: {agent_notepad}
+
+prompt = prompTemplate(
+    template = react_temp,
+    input_variables=["tools","tool_names","input","agent_notepad"]
+)
+
